@@ -1,0 +1,6 @@
+services:
+  redis:
+    container_name: onemilioncheckboxed-redis
+    image: redis
+    ports:
+      - 6380:6379

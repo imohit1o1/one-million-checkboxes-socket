@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkboxes</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+    <main class="page">
+        <section class="hero">
+            <div>
+                <h1>Checkboxes</h1>
+                <p class="subtitle">A cleaner, softer grid with better spacing, contrast, and interaction states.</p>
+            </div>
+        </section>
+        <div id="container"></div>
+    </main>
+</body>
+<script src="/socket.io/socket.io.js"></script>
+<script type="module">
+    import { CLIENT_EVENTS, SERVER_EVENTS } from './constants.js';
+
+    const socket = io();
+    const container = document.getElementById('container');
+
+    window.addEventListener("load", async () => {
+        const response = await fetch("/checkboxes", { method: "GET" });
+        const data = await response.json();
+
+        console.log("DATA", data);
+
+        if (data && data.checkboxes) {
+            data.checkboxes.forEach((serverValue, index) => {
+                // create input element
+                const input = document.createElement('input');
+                // make input type properties to checkbox
+                input.type = 'checkbox';
+                // add an id attribute to the input
+                input.id = `checkbox-${index}`
+
+                // if server is sending the input is checked then make that input checked
+                input.checked = serverValue
+
+                // event listen on each input
+                input.addEventListener("change", (event) => {
+                    const checked = event.target.checked;
+                    console.log("checked", { index, checked });
+                    socket.emit(CLIENT_EVENTS.TOGGLE_CHECKBOX, { index, checked });
+                })
+
+                container.appendChild(input);
+            });
+
+        }
+    })
+
+    socket.on(SERVER_EVENTS.CHECKBOX_UPDATED, (data) => {
+        console.log("Event coming from the server", data);
+        const { index, checked } = data;
+        const input = document.getElementById(`checkbox-${index}`)
+
+        if (input) {
+            input.checked = checked
+        }
+    })
+
+</script>
+
+</html>
