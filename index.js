@@ -12,6 +12,9 @@ import { channel } from 'node:diagnostics_channel';
 
 const CHECKBOX_STATE_KEY = 'checkbox-state'
 
+const rateLimitHashMap = new Map();
+
+
 async function main() {
     const PORT = process.env.PORT || 8002;
     const app = express();
@@ -43,6 +46,19 @@ async function main() {
             //! after emitting the event to all sockets we have to update the initial state so new socket get the old data
             // io.emit(SERVER_EVENTS.CHECKBOX_UPDATED, data);
             // initialState.checkboxes[index] = checked;
+
+
+            const lastOperationTime = rateLimitHashMap.get(socket.id);
+            const now = Date.now();
+
+            if (lastOperationTime) {
+                const timeElapsed = now - lastOperationTime;
+                if (timeElapsed < 1000) { // 1 second rate limit for better UX testing
+                    socket.emit(SERVER_EVENTS.RATE_LIMIT, { message: "Slow down! You're clicking too fast." });
+                    return;
+                }
+            }
+            rateLimitHashMap.set(socket.id, now);
 
             const existingState = await redis.get(CHECKBOX_STATE_KEY);
             let state;

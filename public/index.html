@@ -18,6 +18,7 @@
         </section>
         <div id="container"></div>
     </main>
+    <div id="toast-container"></div>
 </body>
 <script src="/socket.io/socket.io.js"></script>
 <script type="module">
@@ -25,8 +26,27 @@
 
     const socket = io();
     const container = document.getElementById('container');
+    const toastContainer = document.getElementById('toast-container');
 
-    window.addEventListener("load", async () => {
+    function showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerText = message;
+        toastContainer.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.add('fade-out');
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }, 3000);
+    }
+
+    async function fetchStateFromServer() {
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
+
         const response = await fetch("/checkboxes", { method: "GET" });
         const data = await response.json();
 
@@ -50,11 +70,15 @@
                     console.log("checked", { index, checked });
                     socket.emit(CLIENT_EVENTS.TOGGLE_CHECKBOX, { index, checked });
                 })
-
+                fetchStateFromServer()
                 container.appendChild(input);
             });
 
         }
+    }
+
+    window.addEventListener("load", async () => {
+        fetchStateFromServer()
     })
 
     socket.on(SERVER_EVENTS.CHECKBOX_UPDATED, (data) => {
@@ -67,6 +91,9 @@
         }
     })
 
+    socket.on(SERVER_EVENTS.RATE_LIMIT, (data) => {
+        showToast(data.message);
+    })
 </script>
 
 </html>
